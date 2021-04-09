@@ -3,9 +3,11 @@ import 'package:http/http.dart' as http;
 import './product.dart';
 import 'dart:convert';
 
+import 'product.dart';
+
 class Products with ChangeNotifier {
   List<Product> _items = [
-    Product(
+    /*   Product(
       id: 'p1',
       title: 'Red Shirt',
       description: 'A red shirt - it is pretty red!',
@@ -36,7 +38,7 @@ class Products with ChangeNotifier {
       price: 49.99,
       imageUrl:
           'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Cast-Iron-Pan.jpg/1024px-Cast-Iron-Pan.jpg',
-    ),
+    ),*/
   ];
 
   var _showFavoritesOnly = false;
@@ -66,19 +68,44 @@ class Products with ChangeNotifier {
     notifyListeners();
   }*/
 
-  Future<void> addProduct(Product product) {
+  Future<void> fetchAndSetProducts() async {
     const url =
         'https://shop-app-9d9ff-default-rtdb.europe-west1.firebasedatabase.app/products.json';
-    return http
-        .post(url,
-            body: json.encode({
-              'title': product.title,
-              'description': product.description,
-              'imageUrl': product.imageUrl,
-              'price': product.price,
-              'isFavorite': product.isFavorite
-            }))
-        .then((response) {
+    try {
+      final response = await http.get(url);
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+      final List<Product> loadedProducts = [];
+      extractedData.forEach((prodId, prodData) {
+        loadedProducts.add(
+          Product(
+              id: prodId,
+              title: prodData['title'],
+              description: prodData['description'],
+              imageUrl: prodData['imageUrl'],
+              price: prodData['price'],
+              isFavorite: prodData['isFavorite']),
+        );
+      });
+      _items = loadedProducts;
+      notifyListeners();
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  Future<void> addProduct(Product product) async {
+    const url =
+        'https://shop-app-9d9ff-default-rtdb.europe-west1.firebasedatabase.app/products.json';
+    try {
+      final response = await http.post(url,
+          body: json.encode({
+            'title': product.title,
+            'description': product.description,
+            'imageUrl': product.imageUrl,
+            'price': product.price,
+            'isFavorite': product.isFavorite
+          }));
+
       final newProduct = Product(
           title: product.title,
           description: product.description,
@@ -87,7 +114,9 @@ class Products with ChangeNotifier {
           id: json.decode(response.body)['name']);
       _items.add(newProduct);
       notifyListeners();
-    });
+    } catch (e) {
+      throw e;
+    }
   }
 
   void updateProduct(String id, Product product) {
