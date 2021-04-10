@@ -4,43 +4,35 @@ import 'package:shop_app/providers/orders.dart' show Orders;
 import 'package:shop_app/widgets/app_drawer.dart';
 import '../widgets/orderItem.dart';
 
-class OrdersScreen extends StatefulWidget {
+class OrdersScreen extends StatelessWidget {
   static const routeName = '/orders';
 
   @override
-  _OrdersScreenState createState() => _OrdersScreenState();
-}
-
-class _OrdersScreenState extends State<OrdersScreen> {
-  var _isLoading = false;
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    Future.delayed(Duration.zero).then((value) async {
-      setState(() {
-        _isLoading = true;
-      });
-      await Provider.of<Orders>(context, listen: false).fetchAndSortOrders();
-      setState(() {
-        _isLoading = false;
-      });
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final ordersData = Provider.of<Orders>(context);
+    //final ordersData = Provider.of<Orders>(context);
     return Scaffold(
         appBar: AppBar(
           title: Text('Your Orders'),
         ),
         drawer: AppDrawer(),
-        body: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                itemCount: ordersData.orders.length,
-                itemBuilder: (ctx, i) => OrderItem(ordersData.orders[i]),
-              ));
+        body: FutureBuilder(
+            future: Provider.of<Orders>(context, listen: false)
+                .fetchAndSortOrders(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else if (snapshot.error != null) {
+                return Center(
+                  child: Text('An error occured'),
+                );
+              } else {
+                return Consumer<Orders>(
+                    builder: (ctx, orderData, child) => ListView.builder(
+                          itemCount: orderData.orders.length,
+                          itemBuilder: (ctx, i) =>
+                              OrderItem(orderData.orders[i]),
+                        ));
+              }
+            }));
   }
 }
