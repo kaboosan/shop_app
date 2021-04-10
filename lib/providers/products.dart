@@ -94,7 +94,7 @@ class Products with ChangeNotifier {
   }
 
   Future<void> addProduct(Product product) async {
-    const url =
+    final url =
         'https://shop-app-9d9ff-default-rtdb.europe-west1.firebasedatabase.app/products.json';
     try {
       final response = await http.post(url,
@@ -139,7 +139,18 @@ class Products with ChangeNotifier {
   }
 
   void deleteProduct(String id) {
+    final url =
+        'https://shop-app-9d9ff-default-rtdb.europe-west1.firebasedatabase.app/products/$id.json';
+    final existingProductIndex =
+        _items.indexWhere((element) => element.id == id);
+    var existingProduct = _items[existingProductIndex];
     _items.removeWhere((prod) => prod.id == id);
     notifyListeners();
+    http.delete(url).then((_) {
+      existingProduct = null;
+    }).catchError((onError) {
+      _items.insert(existingProductIndex, existingProduct);
+      notifyListeners();
+    });
   }
 }
