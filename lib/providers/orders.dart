@@ -3,6 +3,8 @@ import 'package:shop_app/providers/cart.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'cart.dart';
+
 class OrderItem {
   final String id;
   final double amount;
@@ -20,6 +22,30 @@ class Orders with ChangeNotifier {
   List<OrderItem> _orders = [];
   List<OrderItem> get orders {
     return [..._orders];
+  }
+
+  Future<void> fetchAndSortOrders() async {
+    const url =
+        'https://shop-app-9d9ff-default-rtdb.europe-west1.firebasedatabase.app/orders.json';
+    final response = await http.get(url);
+    final List<OrderItem> loadedOrders = [];
+    final extractedData = json.decode(response.body) as Map<String, dynamic>;
+    if (extractedData == null) return;
+    extractedData.forEach((key, value) {
+      loadedOrders.add(OrderItem(
+          id: key,
+          amount: value['amount'],
+          products: (value['products'] as List<dynamic>)
+              .map((e) => CartItem(
+                  id: e['id'],
+                  title: e['title'],
+                  quantity: e['quantity'],
+                  price: e['price']))
+              .toList(),
+          dateTime: DateTime.parse(value['dateTime'])));
+    });
+    _orders = loadedOrders.reversed.toList();
+    notifyListeners();
   }
 
   Future<void> addOrder(List<CartItem> cartProducts, double total) async {
